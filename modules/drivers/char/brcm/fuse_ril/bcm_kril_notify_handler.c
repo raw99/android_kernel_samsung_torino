@@ -31,8 +31,6 @@ static Boolean sHspaChnlAlloc = FALSE;
 
 Boolean StkCall= FALSE;  // gearn setup call 
 Boolean StkIcon= FALSE;  // gearn not support icon TR
-Boolean Msisdnck= FALSE;  // solokou check MSISDN
-Boolean Msisdnck_1= FALSE;  // solokou check MSISDN
 
 #ifdef BRCM_AGPS_CONTROL_PLANE_ENABLE
 #include "capi2_lcs_cplane_api.h"
@@ -1102,7 +1100,7 @@ UInt16 ParseItemData(UInt8 *simple_tlv_ptr, UInt8 numItems, UInt8 *pItemIdList, 
     
     // If the "item data object for item 1" is a null data object(i.e. length = "00"
     // and no value part), this is an indication to the ME to remove the existing menu.
-    if ((0 == numItems) || (0 == pItemIdList[0]))
+    if ((0 == numItems) || (0 == pItemIdList[0]) || (NULL != pItemList && 0 == pItemList[0].len))
     {
         tlv_ptr = simple_tlv_ptr;
         
@@ -4549,17 +4547,6 @@ void ProcessSATKRefresh(Kril_CAPI2Info_t *dataBuf)
         case SMRT_INIT:
             data[0] = BCM_SIM_INIT;
             data[1] = 0;
-             if(dataBuf->SimId == SIM_DUAL_FIRST) // gearn STK2 SIM refresh reset
-             {
-                 Msisdnck = FALSE;
-                 KRIL_DEBUG(DBG_ERROR, " Msisdnck FALSE");
-             }
-             else if(dataBuf->SimId == SIM_DUAL_SECOND)
-            {
-                 Msisdnck_1 = FALSE;
-                 KRIL_DEBUG(DBG_ERROR, " Msisdnck_1 FALSE");            
-             }  
-            KRIL_SendNotify(dataBuf->SimId, BRCM_RIL_UNSOL_SIM_REFRESH, data, sizeof(int)*2);            
             break;
         
         case SMRT_FILE_CHANGED:
@@ -4567,7 +4554,6 @@ void ProcessSATKRefresh(Kril_CAPI2Info_t *dataBuf)
             path_len = pRefresh->FileIdList.changed_file[0].path_len;
             data[1] = (int)pRefresh->FileIdList.changed_file[0].file_path[path_len-1];
             KRIL_DEBUG(DBG_INFO,"SMRT_FILE_CHANGED: data[1]:0x%X\n",data[1]);
-            KRIL_SendNotify(dataBuf->SimId, BRCM_RIL_UNSOL_SIM_REFRESH, data, sizeof(int)*2);            
             break;
         case SMRT_RESET:
              data[0] = BCM_SIM_RESET;
@@ -4576,13 +4562,11 @@ void ProcessSATKRefresh(Kril_CAPI2Info_t *dataBuf)
              if(dataBuf->SimId == SIM_DUAL_FIRST) // gearn STK2 SIM refresh reset
              {
              gIsStkRefreshReset = TRUE;
-                 Msisdnck = FALSE;
                  KRIL_DEBUG(DBG_ERROR, " ProcessSATKRefresh 1 gIsStkRefreshReset: %d\n" ,gIsStkRefreshReset);
              }
              else if(dataBuf->SimId == SIM_DUAL_SECOND)
             {
                  gIsStkRefreshResetSTK2 = TRUE;
-                 Msisdnck_1 = FALSE;
                  KRIL_DEBUG(DBG_ERROR, " ProcessSATKRefresh 1 gIsStkRefreshResetSTK2: %d\n" ,gIsStkRefreshResetSTK2);            
              }    
              KRIL_DEBUG(DBG_ERROR,"ParseSATKRefresh() SMRT_RESET!!\n");
@@ -5236,7 +5220,7 @@ void  ProcessNewSMSReport(Kril_CAPI2Info_t * data)
     msg->pduSize++;
     msg->PDU[0] = 0x00;
     memcpy(&msg->PDU[1], pmsg->PDU, pmsg->pduSize);
-    //KRIL_DEBUG(DBG_INFO, "pduSize:%d pduSize:%d Number:%s\n", msg->pduSize, pmsg->pduSize, pmsg->daoaAddress.Number);
+    KRIL_DEBUG(DBG_INFO, "pduSize:%d pduSize:%d Number:%s\n", msg->pduSize, pmsg->pduSize, pmsg->daoaAddress.Number);
     KRIL_SendNotify(data->SimId, BRCM_RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT, msg, sizeof(KrilMsgPDUInfo_t));
     kfree(msg);
 }
@@ -6099,47 +6083,12 @@ void ProcessNotification(Kril_CAPI2Info_t *notify)
             break;
 
         case MSG_PBK_READY_IND:
-        {       char msg[5 + 33]  ;	///< NULL terminated IMSI string in ASCII format
-			PBK_ENTRY_DATA_RSP_t *pbk_entry = (PBK_ENTRY_DATA_RSP_t*) notify->dataBuf;
-
-			if ( pbk_entry->pbk_id == PB_MSISDN){
-				/* handle the MSISDN message */
-			//	KRIL_DEBUG(DBG_ERROR,"BRIL_HOOK_UNSOL_SIM_MSISDN_DATA: %s \n", pbk_entry->pbk_rec.number);
-				if ((notify->SimId == SIM_DUAL_FIRST) && (Msisdnck == FALSE)){
-        			memset(msg,0,sizeof(msg));
-		
-        			msg[0]=(UInt8)'B';
-        			msg[1]=(UInt8)'R';
-        			msg[2]=(UInt8)'C';
-        			msg[3]=(UInt8)'M';
-        			msg[4]=(UInt8)BRIL_HOOK_UNSOL_SIM_MSISDN_DATA;
-        			memcpy(&(msg[5]),pbk_entry->pbk_rec.number,33);
-				KRIL_SendNotify(notify->SimId, BRCM_RIL_UNSOL_OEM_HOOK_RAW, msg, sizeof(msg));
-        			Msisdnck = TRUE;
-                                }
-				if ((notify->SimId == SIM_DUAL_SECOND) && (Msisdnck_1 == FALSE)){
-        			memset(msg,0,sizeof(msg));
-		
-        			msg[0]=(UInt8)'B';
-        			msg[1]=(UInt8)'R';
-        			msg[2]=(UInt8)'C';
-        			msg[3]=(UInt8)'M';
-        			msg[4]=(UInt8)BRIL_HOOK_UNSOL_SIM_MSISDN_DATA;
-        			memcpy(&(msg[5]),pbk_entry->pbk_rec.number,33);
-				KRIL_SendNotify(notify->SimId, BRCM_RIL_UNSOL_OEM_HOOK_RAW, msg, sizeof(msg));
-        			Msisdnck_1 = TRUE;
-                                }
-        	}else 
-			{
-
             if(!KRIL_DevSpecific_Cmd(BCM_KRIL_CLIENT, notify->SimId, KRIL_REQUEST_QUERY_SIM_EMERGENCY_NUMBER, NULL, 0))
             {
                 KRIL_DEBUG(DBG_ERROR,"Command KRIL_REQUEST_QUERY_SIM_EMERGENCY_NUMBER failed\n");
             }
-			}
+            break;
 
-        	break;
-		}
         case MSG_SIM_PIN_IND:
         {
             SimPinInd_t *pind = (SimPinInd_t*) notify->dataBuf;

@@ -171,13 +171,13 @@ void KRIL_InitCmdHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp)
             {
                 if (pInitData->is_valid_imei)
                 {
-                    KRIL_DEBUG(DBG_INFO, "OTP IMEI[%d]\n", pdata->ril_cmd->SimId);
+                    KRIL_DEBUG(DBG_INFO, "OTP IMEI[%d]:%s\n", pdata->ril_cmd->SimId, pInitData->imei);
                 
 #ifdef CONFIG_BRCM_SIM_SECURE_ENABLE
                     // Record IMEI1 infomation  
                     if (FALSE == ProcessImei((UInt8*)pInitData->imei, sImei_Info[pdata->ril_cmd->SimId]))
                     {
-                        KRIL_DEBUG(DBG_ERROR,"Process IMEI[%d] Failed!!!",pdata->ril_cmd->SimId);
+                        KRIL_DEBUG(DBG_ERROR,"Process IMEI[%d]:%s Failed!!!",pdata->ril_cmd->SimId, pInitData->imei);
                         pdata->handler_state = BCM_ErrorCAPI2Cmd;
                         kernel_power_off();
                     }
@@ -201,7 +201,7 @@ void KRIL_InitCmdHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp)
             }
             else if ((SIM_DUAL_SECOND == pdata->ril_cmd->SimId) && pInitData->is_valid_imeiEx)
             {
-                KRIL_DEBUG(DBG_INFO, "OTP IMEI[%d]\n", pdata->ril_cmd->SimId);
+                KRIL_DEBUG(DBG_INFO, "OTP IMEI[%d]:%s\n", pdata->ril_cmd->SimId, pInitData->imeiEx);
                 // Record IMEI2 infomation
                 memset(&data, 0, sizeof(CAPI2_MS_Element_t));
                 memcpy(data.data_u.imeidata, pInitData->imeiEx, IMEI_DIGITS);
@@ -1266,17 +1266,17 @@ void ParseIMSIData(KRIL_CmdList_t *pdata, Kril_CAPI2Info_t *capi2_rsp)
             }
       }
       strncpy(Mnc, (char*)rsp + 3, mncLength);
-	  //KRIL_DEBUG(DBG_INFO,"IMSI: MCC:%s , MNC:%s\n",Mcc,Mnc);
+	  KRIL_DEBUG(DBG_INFO,"IMSI: MCC:%s , MNC:%s\n",Mcc,Mnc);
 	  
 	  Sim_MCC = ConvertStrToNum(Mcc);
 	  Sim_MNC = ConvertStrToNum(Mnc); 
-	  //KRIL_DEBUG(DBG_INFO,"IMSI: Sim_MCC:%d , Sim_MNC:%d\n",Sim_MCC,Sim_MNC);
+	  KRIL_DEBUG(DBG_INFO,"IMSI: Sim_MCC:%d , Sim_MNC:%d\n",Sim_MCC,Sim_MNC);
 
           if (Sim_MCC == 0 && Sim_MNC == 0)
           {
               name_size = strlen(PlmnName);
               strncpy(imsi_result->PlmnName, PlmnName, name_size);
-	      //KRIL_DEBUG(DBG_INFO,"IMSI: Can not read IMSI, IMSI is 0");
+	      KRIL_DEBUG(DBG_INFO,"IMSI: Can not read IMSI, IMSI is 0");
           }
           else
           {
@@ -1292,7 +1292,7 @@ void ParseIMSIData(KRIL_CmdList_t *pdata, Kril_CAPI2Info_t *capi2_rsp)
                     name_size = strlen(PlmnName);
               }
               strncpy(imsi_result->PlmnName, PlmnName, name_size);
-              //KRIL_DEBUG(DBG_INFO,"IMSI: PlmnName:%s , size:%d\n",imsi_result->PlmnName,name_size);
+              KRIL_DEBUG(DBG_INFO,"IMSI: PlmnName:%s , size:%d\n",imsi_result->PlmnName,name_size);
           } 
 	  //  --JSHAN	
     }
@@ -1360,7 +1360,7 @@ static void ParseIMEIData(KRIL_CmdList_t* pdata, Kril_CAPI2Info_t* capi2_rsp)
             // MS database IMEI is not all 0's, so we use it
             strncpy(imei_result->imei, pMSDBImeiStr, IMEI_DIGITS);
             imei_result->imei[IMEI_DIGITS] = '\0';
-            KRIL_DEBUG(DBG_INFO,"Using MS DB IMEI\n");
+            KRIL_DEBUG(DBG_INFO,"Using MS DB IMEI:%s\n", pMSDBImeiStr );
         }
         else
         {
@@ -1373,7 +1373,7 @@ static void ParseIMEIData(KRIL_CmdList_t* pdata, Kril_CAPI2Info_t* capi2_rsp)
             if ( bFound )
             {
                 // got it from sysparms, so copy to the response struct
-                KRIL_DEBUG(DBG_INFO,"Using sysparm IMEI\n");
+                KRIL_DEBUG(DBG_INFO,"Using sysparm IMEI:%s\n", tmpImeiStr );
                 strncpy(imei_result->imei, tmpImeiStr, IMEI_STRING_LEN);
             }
             else

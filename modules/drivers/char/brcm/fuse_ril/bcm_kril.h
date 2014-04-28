@@ -456,7 +456,7 @@ typedef struct {
     char            name[BCM_MAX_DIGITS*2];
     size_t          namelen;
     char            namePresentation;
-    char            number[BCM_MAX_DIGITS+1];     /* phone number */
+    char            number[PHONE_NUMBER_LENGTH_MAX];     /* phone number */
     size_t          numlen;     /* phone number length*/
     char            numberPresentation; /* 0 = Allowed, 
                                            1 = Restricted,
@@ -856,8 +856,7 @@ typedef struct {
 typedef enum {
     BRIL_HOOK_UNSOL_SIM_ERROR,        // Notify user SIM Card is error.
     BRIL_HOOK_UNSOL_SIM_DATA,          // Notify user SIM Data for IMSI/GID1/GID2
-    BRIL_HOOK_UNSOL_MASTER_SIM_MODE,    // Notify if the Master SIM mode is invoked
-    BRIL_HOOK_UNSOL_SIM_MSISDN_DATA     //Notify user SIM Data for MSISDN
+    BRIL_HOOK_UNSOL_MASTER_SIM_MODE    // Notify if the Master SIM mode is invoked
 } HOOK_unsol_msgType;
 
 

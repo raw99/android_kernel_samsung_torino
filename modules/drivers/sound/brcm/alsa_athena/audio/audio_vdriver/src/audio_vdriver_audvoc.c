@@ -764,7 +764,7 @@ void AUDDRV_SetMusicMode( AudioMode_t audio_mode, AudioApp_t audio_app)
 	UInt16 AUDVOC_AEQPATHOFST[ EQPATH_SIZE];
 
 
-	Log_DebugPrintf(LOGID_AUDIO, "\n\r\t* AUDDRV_SetMusicMode() audio_app=%d, audio_mode=%d\n\r", audio_app, audio_mode );
+	Log_DebugPrintf(LOGID_AUDIO, "\n\r\t* AUDDRV_SetMusicMode() audio_mode==%d\n\r", audio_mode );
 
 	currAudioMode = (AudioMode_t)(audio_mode % AUDIO_MODE_NUMBER); // update mode
 	currMusicAudioMode = currAudioMode;
@@ -806,19 +806,6 @@ void AUDDRV_SetMusicMode( AudioMode_t audio_mode, AudioApp_t audio_app)
 	//this sysparm at AP is not right. AUDDRV_SetFilter( AUDDRV_PEQPATHGAIN,	(const UInt16 *) & SYSPARM_GetAudioParmAccessPtr()->AUDVOC_PEQPATHGAIN[0][0] );
 	//AUDDRV_SetFilter( AUDDRV_PEQPATHOFST, & SYSPARM_GetAudioParmAccessPtr()->AUDVOC_PEQPATHOFST[0][0] );
 	AUDDRV_SetFilter( AUDDRV_PIIR,			(const UInt16 *) & AUDIOMODE_PARM_MM_ACCESSOR(currAudioApp,currAudioMode).PR_DAC_IIR[0] );
-
-	if (currAudioApp == AUDIO_APP_VOIP || currAudioApp == AUDIO_APP_VOIP_INCOMM)
-	{
-		Log_DebugPrintf(LOGID_AUDIO, "\n\r\t* AUDDRV_SetMusicMode(): forced gain setting for VoIP\n\r");
-
-		// forced to set aslopgain loaded from sysparm, because VoIP is possibly detected at recording time.
-		AUDDRV_SetGain_Hex( AUDDRV_GAIN_AUDIO_OUTPUT_L, AUDIOMODE_PARM_MM_ACCESSOR(currAudioApp,currAudioMode).audvoc_aslopgain );
-		AUDDRV_SetGain_Hex( AUDDRV_GAIN_AUDIO_OUTPUT_R, AUDIOMODE_PARM_MM_ACCESSOR(currAudioApp,currAudioMode).audvoc_aslopgain );
-
-		// forced to set pslopgain loaded from sysparm, because VoIP is possibly detected at recording time.
-		AUDDRV_SetGain_Hex( AUDDRV_GAIN_RINGTONE_OUTPUT_L, AUDIOMODE_PARM_MM_ACCESSOR(currAudioApp,currAudioMode).audvoc_pslopgain );
-		AUDDRV_SetGain_Hex( AUDDRV_GAIN_RINGTONE_OUTPUT_R, AUDIOMODE_PARM_MM_ACCESSOR(currAudioApp,currAudioMode).audvoc_pslopgain );
-	}
 
 	AUDDRV_SetMPM( AUDDRV_Mixer_BIQUAD_CFG, AUDIOMODE_PARM_ACCESSOR(currAudioApp,currAudioMode).MPMbiquad_cfg );
 

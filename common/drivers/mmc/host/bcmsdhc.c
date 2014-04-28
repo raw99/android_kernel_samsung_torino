@@ -32,6 +32,8 @@
 #include <linux/pm_qos_params.h>
 #include <linux/regulator/consumer.h>
 
+#include <linux/mfd/max8986/max8986.h>
+
 #ifndef CONFIG_ARCH_BCM215XX
 #include <mach/reg_sdio.h>
 #else
@@ -63,6 +65,43 @@ int sdio_remove_qos_req(struct bcmsdhc_host *host);
 
 
 bool sd_inserted = 0;
+
+struct regulator_dev {
+	struct regulator_desc *desc;
+	int use_count;
+	int open_count;
+	int exclusive;
+
+	/* lists we belong to */
+	struct list_head list; /* list of all regulators */
+	struct list_head slist; /* list of supplied regulators */
+
+	/* lists we own */
+	struct list_head consumer_list; /* consumers we supply */
+	struct list_head supply_list; /* regulators we supply */
+
+	struct blocking_notifier_head notifier;
+	struct mutex mutex; /* consumer lock */
+	struct module *owner;
+	struct device dev;
+	struct regulation_constraints *constraints;
+	struct regulator_dev *supply;	/* for tree */
+
+	void *reg_data;		/* regulator_dev data */
+};
+
+struct regulator {
+	struct device *dev;
+	struct list_head list;
+	int uA_load;
+	int min_uV;
+	int max_uV;
+	char *supply_name;
+	struct device_attribute dev_attr;
+	struct regulator_dev *rdev;
+};
+
+
 /* *************************************************************************************************** */
 /* Function Name: bcmsdhc_dumpregs */
 /* Description: This function is for logging register of SDHC */
@@ -129,7 +168,6 @@ static void bcmsdhc_reset(struct bcmsdhc_host *host, u8 mask)
 	}
 
 	writeb(mask, host->ioaddr + SDHC_SOFT_RESET);
-	mdelay(1);
 
 	if (mask & SOFT_RESET_ALL)
 		host->clock = 0;
@@ -1106,15 +1144,6 @@ static void bcmsdhc_set_clock(struct bcmsdhc_host *host, unsigned int clock)
 out:
 	host->clock = clock;
 
-	/***
-		Send stable clock after the changing of clock.
-	***/
-	if( host->clock != 0 )
-	{
-		bcmsdhc_clock_on( host );
-		mdelay( 10 );
-		bcmsdhc_clock_off( host );
-	}
 }
 
 /* *************************************************************************************************** */
@@ -1288,30 +1317,16 @@ static void bcmsdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 #ifdef CONFIG_REGULATOR
 		if(host->vcc) {
 			/* Disable regulator here */
-			DBG(KERN_INFO "SDHC:Slot[%d]=> regulator_disable\n", host->sdhc_slot);
-			regulator_disable(host->vcc);
-			//pull-down all io pad of SD
-			if(host->bcm_plat->flags&SDHC_DEVTYPE_SD){
-				printk("%s-SDHC[%d] is disabled by calling syscfg_interface()-->CMD/DATA Line is pull-down\n",__func__,host->sdhc_slot);
-				host->bcm_plat->syscfg_interface(SYSCFG_SDHC1 +host->sdhc_slot - 1,
-					       SYSCFG_DISABLE);
-			mdelay(1);
-			}
+			printk(KERN_INFO "SDHC:Slot[%d]=> regulator_disable\n", host->sdhc_slot);
+			/* regulator_disable(host->vcc); */
 		}
 #endif
 		break;
 	case MMC_POWER_UP:
 #ifdef CONFIG_REGULATOR
 		if (host->vcc) {
-			DBG(KERN_INFO "SDHC:Slot[%d]=> regulator_enable\n", host->sdhc_slot);
+			printk(KERN_INFO "SDHC:Slot[%d]=> regulator_enable\n", host->sdhc_slot);
 			result = regulator_enable(host->vcc);
-			//pull-up all io pad of SD
-			if(host->bcm_plat->flags&SDHC_DEVTYPE_SD){
-				mdelay(1);
-				printk("%s-SDHC[%d] is enabled by calling syscfg_interface()-->CMD/DATA Line is pull-up\n",__func__,host->sdhc_slot);
-				host->bcm_plat->syscfg_interface(SYSCFG_SDHC1 +host->sdhc_slot - 1,
-												   SYSCFG_ENABLE);
-			}
 		}
 #endif
 		break;
@@ -1330,13 +1345,13 @@ static void bcmsdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		bcmsdhc_init(host, SOFT_RESET_ALL);
 	}
 
+	bcmsdhc_set_clock(host, ios->clock);
+
 	if (ios->power_mode == MMC_POWER_OFF) {
 		bcmsdhc_set_power(host, -1);
 	} else {
 		bcmsdhc_set_power(host, ios->vdd);
 	}
-	bcmsdhc_set_clock(host, ios->clock);
-
 	ctrl = readb(host->ioaddr + SDHC_HOST_CONTROL);
 
 	if (ios->bus_width == MMC_BUS_WIDTH_4) {
@@ -1488,6 +1503,7 @@ static void bcmsdhc_tasklet_card(unsigned long param)
 	struct bcmsdhc_host *host;
 	unsigned long flags;
 	int state;
+	int result = 0;
 
 	host = (struct bcmsdhc_host *)param;
 	state = gpio_get_value(host->irq_cd);
@@ -1496,14 +1512,12 @@ static void bcmsdhc_tasklet_card(unsigned long param)
 	if (state != (host->bcm_plat->flags & SDHC_CARD_DETECT_ACTIVE_HIGH)) {
 		host->card_present = false;
 		if (host->mrq) {
-			
+			pr_info(" %s: Card removed during transfer!\n",
+				mmc_hostname(host->mmc));
 			bcmsdhc_reset(host, SOFT_RESET_CMD);
 			bcmsdhc_reset(host, SOFT_RESET_DAT);
 
 			host->mrq->cmd->error = -ENOMEDIUM;
-			host->mrq_second = host->mrq;
-			pr_info(" %s:mrq:0x%x mrq_second:0x%x:Card removed during transfer!\n",
-				mmc_hostname(host->mmc),(unsigned int)host->mrq,(unsigned int)host->mrq_second);
 			tasklet_schedule(&host->finish_tasklet);
 		}
 		pr_info(" %s: SD Card removed !\n", mmc_hostname(host->mmc));
@@ -1515,6 +1529,29 @@ static void bcmsdhc_tasklet_card(unsigned long param)
 	sd_inserted = host->card_present;
 
 	spin_unlock_irqrestore(&host->lock, flags);
+
+	// When the card is rejrcted, the sd power should turn on!
+	// struct regulator *regulator_get(struct device *dev, const char *id)
+	if(!host->card_present)
+	{
+		if(!strcmp(mmc_hostname(host->mmc), "mmc1"))
+		{
+			if(host->vcc)
+			{
+			/* 	-------------------------------------------------------------------------------------------- */
+			/*	printk(KERN_INFO "%s's vreg: Name %s / Use Count %d / Open Count %d\n", mmc_hostname(host->mmc), 
+						host->vcc->supply_name, host->vcc->rdev->use_count, host->vcc->rdev->open_count); */
+			/*	-------------------------------------------------------------------------------------------- */
+				result = regulator_enable(host->vcc);
+				printk(KERN_INFO "%s's vreg[Turn On]: Name %s / Use Count %d / Open Count %d / Result %d\n", mmc_hostname(host->mmc),
+							host->vcc->supply_name, host->vcc->rdev->use_count, host->vcc->rdev->open_count, result);
+
+			if(host->vcc->rdev->use_count > 65535) 
+				host->vcc->rdev->use_count = 0;
+			}
+		}
+	}
+
 	mmc_detect_change(host->mmc, msecs_to_jiffies(500));
 }
 
@@ -1556,17 +1593,6 @@ static void bcmsdhc_tasklet_finish(unsigned long param)
 		host->sdhc_slot - 1, SYSCFG_DISABLE))
 		return; */
 
-	if(!mrq){
-		pr_info("%s:: %s: host:0x%x	mrq:0x%x	mrq_second:0x%x\n",__func__,
-				mmc_hostname(host->mmc),(unsigned int)host,(unsigned int)host->mrq,(unsigned int)host->mrq_second);
-		mrq = host->mrq_second;
-		if(!mrq){
-			clk_disable(host->bus_clk);		
-			return;
-		}
-
-	}
-	
 	if (mrq->cmd->error ||
 	    (mrq->data && (mrq->data->error ||
 			   (mrq->data->stop && mrq->data->stop->error)))) {
@@ -1576,7 +1602,6 @@ static void bcmsdhc_tasklet_finish(unsigned long param)
 	}
 
 	host->mrq = NULL;
-	host->mrq_second=NULL;
 	host->cmd = NULL;
 	host->data = NULL;
 
@@ -2348,10 +2373,6 @@ static int __init bcmsdhc_probe(struct platform_device *pdev)
 					& SDHC_CARD_DETECT_ACTIVE_HIGH)) {
 			host->card_present = false;
 		}
-		
-		pr_info("%s-GPIO value for card detection:%d, host->card_present:%d\n",__func__,
-																		gpio_get_value(host->irq_cd),
-																		host->card_present);
 	} else {
 		if (!(host->bcm_plat->flags & SDHC_CARD_ALWAYS_PRESENT))
 			host->card_present = false;
@@ -2507,14 +2528,11 @@ static int bcmsdhc_suspend(struct platform_device *pdev, pm_message_t mesg)
 	if (host) {
 		if (host->mmc->card && host->mmc->card->type != MMC_TYPE_SDIO) {
 			ret = mmc_suspend_host(host->mmc);
-			mdelay(50);
 		}
-		if(!(host->bcm_plat->flags&SDHC_DEVTYPE_SD)){
 		if (host->bcm_plat->syscfg_interface(SYSCFG_SDHC1 +
 						     host->sdhc_slot - 1,
 						     SYSCFG_DISABLE))
 			return -EINVAL;
-		}
 
 		free_irq(host->irq, host);
 	}
@@ -2536,12 +2554,10 @@ static int bcmsdhc_resume(struct platform_device *pdev)
 		if (ret)
 			return ret;
 
-		if(!(host->bcm_plat->flags&SDHC_DEVTYPE_SD)){
 		if (host->bcm_plat->syscfg_interface(SYSCFG_SDHC1 +
 						     host->sdhc_slot - 1,
 						     SYSCFG_ENABLE))
 			return -EINVAL;
-		}
 
 		if((host->mmc->card &&
 			host->mmc->card->type != MMC_TYPE_SDIO)) {

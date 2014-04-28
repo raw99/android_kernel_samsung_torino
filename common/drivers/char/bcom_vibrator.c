@@ -79,9 +79,6 @@ static void vibrator_enable_set_timeout(struct timed_output_dev *sdev,
 		if(Is_vib_shortly == false){
 			vibrator_ctrl_regulator(VIB_OFF);
 			del_timer(&vibrate_timer);
-			#if defined(CONFIG_HAS_WAKELOCK)
-			wake_unlock(&vib_wl);
-			#endif /*CONFIG_HAS_WAKELOCK*/
 		}
 		return;
 	}
@@ -104,9 +101,6 @@ static void vibrator_enable_set_timeout(struct timed_output_dev *sdev,
 	                if( ret_mod_timer ){
 				printk(KERN_NOTICE "Vibrator: ret_mod_timer= %d\n", ret_mod_timer);
                                 vibrator_ctrl_regulator(VIB_OFF);
-				    #if defined(CONFIG_HAS_WAKELOCK)
-				    wake_unlock(&vib_wl);
-				    #endif /*CONFIG_HAS_WAKELOCK*/				
                         }
                 }
 		else
@@ -130,16 +124,15 @@ static int vibrator_get_remaining_time(struct timed_output_dev *sdev)
 static int vibrator_probe(struct platform_device *pdev)
 {
 	int ret = 0;
-
-#if defined(CONFIG_HAS_WAKELOCK)
-	wake_lock_init(&vib_wl, WAKE_LOCK_SUSPEND, __stringify(vib_wl));
-#endif
-	
 	/* Setup timed_output obj */
 	vibrator_timed_dev.name = "vibrator";
 	vibrator_timed_dev.enable = vibrator_enable_set_timeout;
 	vibrator_timed_dev.get_time = vibrator_get_remaining_time;
 	vib_voltage = pdev->voltage;
+
+#if defined(CONFIG_HAS_WAKELOCK)
+	wake_lock_init(&vib_wl, WAKE_LOCK_SUSPEND, __stringify(vib_wl));
+#endif
 
 	/* Vibrator dev register in /sys/class/timed_output/ */
 	ret = timed_output_dev_register(&vibrator_timed_dev);

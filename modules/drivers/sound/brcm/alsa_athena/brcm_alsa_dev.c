@@ -812,6 +812,10 @@ static UInt32 VOIP_buf_dl_index = 0;
 static UInt32 lp_voip_mic;
 static UInt32 lp_voip_speaker;
 
+//UInt32 lp_voip_start = 0; /* 20110715 for loopback check */
+UInt32 varyExtPGA=23;
+
+
 static Boolean LB_VOIP_DumpUL_CB(
 AUDIO_DRIVER_HANDLE_t drv_handle,
 UInt8		*pSrc,		// pointer to start of speech data
@@ -1145,6 +1149,46 @@ BCMPCG_ioctl(struct inode *inode, struct file *file,
 
                 powerOnExternalAmp( amp_path, AudioUseExtSpkr, amp_onoff );
             }
+			return 1;            
+             case 119:  /*20111020 for headset analog gain*/
+             {
+                 UInt32 curvol=0;
+                 UInt32 extvol=22;
+					Int16 audioMode;
+#ifdef CONFIG_BOARD_TASSVE            
+ 		   int var_hsgain[16]={21/*0*/,21/*1*/,21/*2*/,21/*3*/,21/*4*/,21/*5*/,21/*6*/,21/*7*/,22/*8*/,23/*9*/,\
+ 		   					24/*10*/,25/*11*/,26/*12*/,27/*13*/,29/*14*/,31/*15*/};
+
+#elif CONFIG_BOARD_COOPERVE            
+ 		   int var_hsgain[16]={20/*0*/,20/*1*/,20/*2*/,20/*3*/,20/*4*/,20/*5*/,20/*6*/,20/*7*/,21/*8*/,23/*9*/,\
+ 		   					24/*10*/,25/*11*/,26/*12*/,27/*13*/,28/*14*/,29/*15*/};
+
+#elif CONFIG_BOARD_TORINO
+		   int var_hsgain[16]={21/*0*/,21/*1*/,21/*2*/,21/*3*/,21/*4*/,21/*5*/,21/*6*/,21/*7*/,22/*8*/,23/*9*/,\
+		   					24/*10*/,25/*11*/,26/*12*/,27/*13*/,29/*14*/,31/*15*/};
+
+ #endif	
+ 		   audioMode = AUDCTRL_GetAudioMode();
+
+ 		    if(audioMode >= AUDIO_MODE_NUMBER)
+ 		        audioMode -= AUDIO_MODE_NUMBER;
+
+ 		    if (audioMode == AUDIO_MODE_HEADSET)
+ 		    {
+ 		                curvol = voip.val2;
+
+ 				if((curvol<0) || (curvol>16)){
+ 					extvol=22;
+ 				}
+ 				else{	
+ 					extvol=var_hsgain[curvol];
+ 				}	
+
+ 		   DEBUG("AUD: SetExtPAVol   curvol=%d   extvol=%d  \r\n",curvol,extvol);
+                     varyExtPGA=extvol;
+ 		   setExternalAmpGain(extvol);
+ 		  }    		   
+             }
             return 1;            
             
             case 121:

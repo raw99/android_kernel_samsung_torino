@@ -802,10 +802,8 @@ void KRIL_OperatorHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp)
                     pdata->handler_state = BCM_ErrorCAPI2Cmd;
                     break;
                 }
-                if ((presult->gsm_reg_state != REG_STATE_NORMAL_SERVICE 
-				&& presult->gsm_reg_state != REG_STATE_ROAMING_SERVICE
-				&& presult->gsm_reg_state != REG_STATE_LIMITED_SERVICE) 
-				||(TRUE == presult->uasConnInfo.ue_out_of_service && (TRUE == gRegInfo[pdata->ril_cmd->SimId].netInfo.hsdpa_supported || TRUE == gRegInfo[pdata->ril_cmd->SimId].netInfo.hsupa_supported)))
+                if ((presult->gsm_reg_state != REG_STATE_NORMAL_SERVICE && presult->gsm_reg_state != REG_STATE_ROAMING_SERVICE) ||
+                    (TRUE == presult->uasConnInfo.ue_out_of_service && (TRUE == gRegInfo[pdata->ril_cmd->SimId].netInfo.hsdpa_supported || TRUE == gRegInfo[pdata->ril_cmd->SimId].netInfo.hsupa_supported)))
                 {
                     pdata->result = BCM_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW;
                     pdata->handler_state = BCM_ErrorCAPI2Cmd;

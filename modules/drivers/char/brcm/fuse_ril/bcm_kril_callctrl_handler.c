@@ -306,7 +306,7 @@ void KRIL_GetCurrentCallHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp)
         {
             PHONE_NUMBER_STR_t *rsp = (PHONE_NUMBER_STR_t *) capi2_rsp->dataBuf;
             KrilCallListState_t *rdata = (KrilCallListState_t *)pdata->bcm_ril_rsp;
-            KRIL_DEBUG(DBG_INFO, "MSG_CC_GETCALLNUMBER_RSP::phone_number:********\n");
+            //KRIL_DEBUG(DBG_INFO, "MSG_CC_GETCALLNUMBER_RSP::phone_number:%s\n",rsp->phone_number);
 
             if(rsp->phone_number[0] == INTERNATIONAL_CODE)
             {
@@ -320,13 +320,13 @@ void KRIL_GetCurrentCallHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp)
             {
                 rdata->KRILCallState[rdata->index].toa = TOA_Unknown;
             }
-            if(strlen(rsp->phone_number) > (BCM_MAX_DIGITS))
+            if(strlen(rsp->phone_number) > (PHONE_NUMBER_LENGTH_MAX-1))
             {
                 pdata->handler_state = BCM_ErrorCAPI2Cmd;
-                KRIL_DEBUG(DBG_ERROR,"Phone number length %d is over buffer length %d!!!\n",strlen(rsp->phone_number),(BCM_MAX_DIGITS) );
+                KRIL_DEBUG(DBG_ERROR,"Phone number length %d is over buffer length %d!!!\n",strlen(rsp->phone_number),(PHONE_NUMBER_LENGTH_MAX-1) );
                 return;
             }              
-            strncpy(rdata->KRILCallState[rdata->index].number, rsp->phone_number, BCM_MAX_DIGITS);
+            strncpy(rdata->KRILCallState[rdata->index].number, rsp->phone_number, PHONE_NUMBER_LENGTH_MAX);
 
             KRIL_DEBUG(DBG_INFO, "MSG_CC_GETCALLNUMBER_RSP::rdata->index:%d\n", rdata->index);
             CAPI2_CcApi_IsMultiPartyCall(InitClientInfo(pdata->ril_cmd->SimId), rdata->KRILCallState[rdata->index].index);
@@ -936,8 +936,7 @@ void KRIL_HangupWaitingOrBackgroundHandler(void *ril_cmd, Kril_CAPI2Info_t *capi
 
         case BCM_RESPCAPI2Cmd:
         {
-            if (capi2_rsp->result == RESULT_OK ||
-                capi2_rsp->result == CC_END_CALL_SUCCESS)
+            if(capi2_rsp->result == RESULT_OK)
             {
                 pdata->handler_state = BCM_FinishCAPI2Cmd;
             }
@@ -1015,21 +1014,10 @@ void KRIL_HangupForegroundResumeBackgroundHandler(void *ril_cmd, Kril_CAPI2Info_
 
         case BCM_CC_EndMPTYCalls:
         {
-            if (CC_END_CALL_SUCCESS == capi2_rsp->result || RESULT_OK == capi2_rsp->result)
+            g_totalMPTYCall--;
+            KRIL_DEBUG(DBG_INFO,"g_totalMPTYCall:%d\n", g_totalMPTYCall);
+            if (0 == g_totalMPTYCall)
             {
-                g_totalMPTYCall--;
-                KRIL_DEBUG(DBG_INFO,"g_totalMPTYCall:%d\n", g_totalMPTYCall);
-                if (0 == g_totalMPTYCall)
-                {
-                    KRIL_SetHungupForegroundResumeBackgroundEndMPTY(0);
-                    CAPI2_CcApi_GetNextWaitCallIndex(InitClientInfo(pdata->ril_cmd->SimId));
-                    pdata->handler_state = BCM_CC_GetNextWaitCallIndex;
-                }
-            }
-            else // MSG_CC_ENDMPTYCALLS_REQ fail
-            {
-                g_totalMPTYCall = 0;
-                KRIL_DEBUG(DBG_INFO,"result:%d\n", capi2_rsp->result);
                 KRIL_SetHungupForegroundResumeBackgroundEndMPTY(0);
                 CAPI2_CcApi_GetNextWaitCallIndex(InitClientInfo(pdata->ril_cmd->SimId));
                 pdata->handler_state = BCM_CC_GetNextWaitCallIndex;
@@ -1909,13 +1897,14 @@ void KRIL_ExplicitCallTransferHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp
                 }
                 else
                 {
-                    pdata->handler_state = BCM_ErrorCAPI2Cmd;
+                    CAPI2_CcApi_GetNextHeldCallIndex(InitClientInfo(pdata->ril_cmd->SimId));
+                    pdata->handler_state = BCM_CC_GetNextHeldCallIndex;
                 }
             }
             else
             {
                 CAPI2_CcApi_GetNextHeldCallIndex(InitClientInfo(pdata->ril_cmd->SimId));
-                pdata->handler_state = BCM_RESPCAPI2Cmd;
+                pdata->handler_state = BCM_CC_GetNextHeldCallIndex;
             }
             break;
         }
@@ -1925,18 +1914,24 @@ void KRIL_ExplicitCallTransferHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp
             UInt8 *rsp = (UInt8 *)capi2_rsp->dataBuf;
             KRIL_DEBUG(DBG_INFO, "HeldCallIndex:%d\n", *rsp);
             CAPI2_CcApi_TransferCall(InitClientInfo(pdata->ril_cmd->SimId), *rsp);
-            pdata->handler_state = BCM_CC_TransferCall;
+            pdata->handler_state = BCM_RESPCAPI2Cmd;
             break;
         }
 
         case BCM_RESPCAPI2Cmd:
         {
-            UInt8 *rsp = (UInt8 *)capi2_rsp->dataBuf;
-            KRIL_DEBUG(DBG_INFO, "HeldCallIndex:%d\n", *rsp);
-            if (*rsp != INVALID_CALL)
+            if(capi2_rsp->result == RESULT_OK)
             {
-               CAPI2_CcApi_TransferCall(InitClientInfo(pdata->ril_cmd->SimId), *rsp);
-               pdata->handler_state = BCM_CC_TransferCall;
+                VoiceCallActionMsg_t *rsp = (VoiceCallActionMsg_t *)capi2_rsp->dataBuf;
+                KRIL_DEBUG(DBG_INFO, "BCM_RESPCAPI2Cmd::rsp->callResult:%d\n", rsp->callResult);
+                if(rsp->callResult == RESULT_OK || rsp->callResult == CC_TRANS_CALL_SUCCESS)
+                {
+                    pdata->handler_state = BCM_FinishCAPI2Cmd;
+                }
+                else
+                {
+                    pdata->handler_state = BCM_ErrorCAPI2Cmd;
+                }
             }
             else
             {

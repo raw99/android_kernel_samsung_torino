@@ -330,7 +330,6 @@ struct bcmsdhc_host {
 	unsigned short power;	/* Current voltage */
 
 	struct mmc_request *mrq;	/* Current request */
-	struct mmc_request *mrq_second;	/* backup request */
 	struct mmc_command *cmd;	/* Current command */
 	struct mmc_data *data;	/* Current data request */
 	unsigned int data_early:1;	/* Data finished before cmd */

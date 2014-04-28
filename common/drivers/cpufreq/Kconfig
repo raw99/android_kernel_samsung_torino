@@ -52,9 +52,9 @@ config CPU_FREQ_STAT_DETAILS
 	  system.
 
 	  If in doubt, say N.
-
+	  
 config CPU_FREQ_BCMTWEAK
-         tristate "CPU frequency bcm tweak"
+        tristate "CPU frequency bcm tweak"
         default y
         help
           This tweak made by irfanbagus fix the governor selecting and the

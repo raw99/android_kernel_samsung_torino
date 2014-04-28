@@ -925,10 +925,6 @@ void KRIL_SendUSSDHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp)
             if (capi2_rsp->result != RESULT_OK)
             {
                 KRIL_DEBUG(DBG_INFO, "BCM_RESPCAPI2Cmd:: capi2_rsp->result=%d !=RESULT_OK\n", capi2_rsp->result);
-                pdata->result = RILErrorResult(capi2_rsp->result);
-                // The USSD session is released. Reset the session related global variables.
-                gDialogID = 0;
-                gUssdID[pdata->ril_cmd->SimId] = CALLINDEX_INVALID;
                 pdata->handler_state = BCM_ErrorCAPI2Cmd;
             }
             else if (capi2_rsp->msgType == MSG_STK_CC_SETUPFAIL_IND)

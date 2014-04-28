@@ -394,7 +394,7 @@ static const char *slpbuf_field_names[] = {
 	__stringify(DORMANT_STORE_END),
 	__stringify(L2CACHE_INIT_FLAG),
 	__stringify(L2_EVICT_BUF),
-	__stringify(WFI_DELAY),
+	__stringify(DORMANT_SCRATCH1),
 	__stringify(DORMANT_SCRATCH2),
 	__stringify(DORMANT_SCRATCH3),
 };
@@ -1019,7 +1019,6 @@ static void bcm215xx_force_sleep(void)
 /*********************************************************************
  *                   LINUX PM FRAMEWORK INTERFACE                    *
  *********************************************************************/
-
 int bcm_gpt_evt_wait_wfi_sync(void);
 static void bcm215xx_enter_sleep(struct bcm_pm_sleep *bcm_pm_sleep)
 {
@@ -1089,10 +1088,6 @@ static void bcm215xx_enter_sleep(struct bcm_pm_sleep *bcm_pm_sleep)
 
 	bcm215xx_disable_deepsleep();
 	bcm215xx_disable_dormant();
-
-	/* This is required for MobC00156895. Without this CP pedestal
-	 * bit in CLK_POWER_MODES register is getting reset. Reason unknown.
-	 */
 	bcm215xx_enable_pedestal();
 }
 
@@ -1349,12 +1344,6 @@ static int bcm215xx_pm_enter(suspend_state_t state)
 	u32 val;
 
 	pr_debug("%s: state:%d\n", __func__, state);
-
-	if (has_wake_lock(WAKE_LOCK_SUSPEND)) {
-		pr_info("%s: pending WAKE_LOCK_SUSPEND, aborting suspend\n",
-			__func__);
-		return 0;
-	}
 
 	switch (state) {
 	case PM_SUSPEND_MEM:
@@ -1655,9 +1644,6 @@ static int __init bcm215xx_pm_init(void)
 	bcm_pm_sleep_buf->dormant_allowed = bcm_dormant_enable;
 	bcm_pm_sleep_buf->verify = true;
 	bcm_pm_sleep_buf->dormant_sequence_dbg = false;
-
-	/* Set the counter value for 12us busy wait delay loop */
-	bcm_pm_sleep_buf->wfi_delay = BCM21553_WFI_DELAY;
 
 	/* Load the physical addresses of the restore function
 	 * and dormant mode exception handlers into the high

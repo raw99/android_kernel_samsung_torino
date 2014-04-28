@@ -939,7 +939,7 @@ void KRIL_SRIL_GetPhoneBookEntryHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_r
 {
     KRIL_CmdList_t *pdata = (KRIL_CmdList_t *)ril_cmd;
 
-    KRIL_DEBUG(DBG_TRACE,"pdata->handler_state:0x%lX\n", pdata->handler_state);
+    KRIL_DEBUG(DBG_ERROR,"pdata->handler_state:0x%lX\n", pdata->handler_state);
 
     if (capi2_rsp && capi2_rsp->result != RESULT_OK)
     {
@@ -1099,6 +1099,7 @@ void KRIL_SRIL_GetPhoneBookEntryHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_r
                 ril_rsp->length_name = (int)alpha_data->alpha_size + 1;
 
 
+                KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: pdata->alpha_data : %s\n", alpha_data->alpha);
                 KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: strlen(alpha_data->alpha) : %d\n", strlen(alpha_data->alpha));
                 KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: alpha_data->alpha_coding: %d\n", alpha_data->alpha_coding);
 
@@ -1151,6 +1152,7 @@ void KRIL_SRIL_GetPhoneBookEntryHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_r
 			break;
                 }
 		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY:  ril_rsp->dataTypeAlphas[0]: %d\n",  ril_rsp->name_datatpye);
+		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: ril_rsp->alphaTags[0] : %s\n", ril_rsp->name);
 
             }
 //Phone Number            
@@ -1158,6 +1160,7 @@ void KRIL_SRIL_GetPhoneBookEntryHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_r
 			int num_len = strlen(pbk_rec->number);
 			ril_rsp->length_number = num_len;
 
+			KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: number: %s\n", (char *)pbk_rec->number);
 			KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY:  num_len: %d\n",  num_len);
 			KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY:  ril_rsp->lengthNumbers[0]: %d\n",  ril_rsp->length_number);
 
@@ -1171,6 +1174,7 @@ void KRIL_SRIL_GetPhoneBookEntryHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_r
 			}
 
 			memcpy(ril_rsp->number, (char *)pbk_rec->number, num_len);
+			KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: ril_rsp->numbers[0]: %s\n", ril_rsp->number);
 
 			}
 			KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY:pbk_etc_rec->num_of_email: %d\n", pbk_etc_rec->num_of_email);
@@ -1200,6 +1204,8 @@ void KRIL_SRIL_GetPhoneBookEntryHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_r
 		}
 		else
 			memset(ril_rsp->email, 0, sizeof(email_data->alpha) + 2);
+		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: email_valid : %s\n", email_valid);
+		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: pdata->email_data : %s\n", email_data->alpha);
 		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY:  ril_rsp->lengthAlphas[2]: %d\n",  ril_rsp->length_email);
 		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: email_data->alpha_size: %d\n",  email_data->alpha_size);
 
@@ -1266,6 +1272,7 @@ void KRIL_SRIL_GetPhoneBookEntryHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_r
 
             }
 		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY:  ril_rsp->dataTypeAlphas[2]: %d\n",  ril_rsp->email_datatpye);
+		KRIL_DEBUG(DBG_TRACE,"HJKIM > RIL_REQUEST_GET_PHONEBOOK_ENTRY: ril_rsp->alphaTags[2] : %s\n", ril_rsp->email);
 		
         }
             pdata->handler_state = BCM_FinishCAPI2Cmd;
@@ -1303,6 +1310,7 @@ void KRIL_SRIL_AccessPhoneBookEnteryHandler(void *ril_cmd, Kril_CAPI2Info_t *cap
             KrilPhonebookAccess_t *cmd_data_fdn = (KrilPhonebookAccess_t *)pdata->ril_cmd->data;
 		if((cmd_data_fdn->fileid == 0x6F3B)&&(cmd_data_fdn->pin2  != NULL))
 		{
+		        KRIL_DEBUG(DBG_ERROR,"HJKIM > CAPI2 KRIL_SRIL_AccessPhoneBookEnteryHandler pincheck:%s\n", cmd_data_fdn->pin2 );
 
 	            	CAPI2_SimApi_SendVerifyChvReq(InitClientInfo(pdata->ril_cmd->SimId), CHV2, cmd_data_fdn->pin2);
 	            	pdata->handler_state = BCM_SRIL_CHECK_PIN2_FDN;
@@ -1336,6 +1344,8 @@ void KRIL_SRIL_AccessPhoneBookEnteryHandler(void *ril_cmd, Kril_CAPI2Info_t *cap
             UInt8 num_length = cmd_data->numberLength;
 
             USIM_PBK_EXT_DATA_t *usim_adn_ext_data = NULL;    // FixMe
+                KRIL_DEBUG(DBG_ERROR,"HJKIM > RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY: alphaTag %s \n",  cmd_data->alphaTag);
+                KRIL_DEBUG(DBG_ERROR,"HJKIM > RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY: number %s \n", cmd_data->number);
 
 
             PBK_Id_t pbk_id = fileid_to_pbk_id(cmd_data->fileid);
@@ -1348,6 +1358,10 @@ void KRIL_SRIL_AccessPhoneBookEnteryHandler(void *ril_cmd, Kril_CAPI2Info_t *cap
 			return;
 		}
 
+		KRIL_DEBUG(DBG_ERROR,"HJKIM > RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY: alphaTagDCS %d \n", cmd_data->alphaTagDCS);
+		KRIL_DEBUG(DBG_ERROR,"HJKIM > RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY: emailTagDCS %d \n", cmd_data->emailTagDCS);
+		KRIL_DEBUG(DBG_ERROR,"HJKIM > RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY: [EF_type] pbk_id %d \n", pbk_id);
+		KRIL_DEBUG(DBG_ERROR,"HJKIM > RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY: command %d \n", cmd_data->command);
 
 
             switch(cmd_data->command)

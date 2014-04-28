@@ -57,10 +57,11 @@
 
 #define SILABS_TS_NAME "silabs-f760"
 
-#define YTE_MODULE_VER0F   0x0F
+#define YTE_MODULE_VER11   0x11
 #define SYN_MODULE_VER01   0x01
 #define SYN_MODULE_VER02   0x02
 
+#define FW_VER01  0x01
 #define FW_VER02  0x02
 #define FW_VER05  0x05
 
@@ -702,6 +703,61 @@ static int silabs_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	}
 	printk("[TSP] silabs_ts_probe %d, %d, %d\n", buf_firmware[0], buf_firmware[1], buf_firmware[2]);
 
+    if (( buf_firmware[2] == YTE_MODULE_VER11)&&(buf_firmware[0] < FW_VER01))
+    { 
+        TSP_MODULE_ID =  buf_firmware[2];
+        PHONE_VER = FW_VER01;
+	    local_irq_disable();
+		ret = Firmware_Download();	
+        printk("[TSP] enable_irq : %d\n", __LINE__ );
+	    local_irq_enable();
+
+		if(ret == 0)
+		{
+			printk(KERN_ERR "SET Download Fail - error code [%d]\n", ret);			
+		}
+	}
+	else if (( buf_firmware[2] == SYN_MODULE_VER01)&&(buf_firmware[0] < FW_VER02))
+    { 
+        TSP_MODULE_ID =  buf_firmware[2];
+        PHONE_VER = FW_VER02;
+	    local_irq_disable();
+		ret = Firmware_Download();	
+        printk("[TSP] enable_irq : %d\n", __LINE__ );
+	    local_irq_enable();
+
+		if(ret == 0)
+		{
+			printk(KERN_ERR "SET Download Fail - error code [%d]\n", ret);			
+		}
+	}
+    else if (( buf_firmware[2] == SYN_MODULE_VER02)&&(buf_firmware[0] < FW_VER05))
+    { 
+        TSP_MODULE_ID =  buf_firmware[2];
+        PHONE_VER = FW_VER05;
+	    local_irq_disable();
+		ret = Firmware_Download();	
+        printk("[TSP] enable_irq : %d\n", __LINE__ );
+	    local_irq_enable();
+
+		if(ret == 0)
+		{
+			printk(KERN_ERR "SET Download Fail - error code [%d]\n", ret);			
+		}
+	}
+	else if (( buf_firmware[2] == 0xFF) || (ret<0))
+    { 
+        TSP_MODULE_ID =  buf_firmware[2];
+	    local_irq_disable();
+		ret = Firmware_Download();	
+        printk("[TSP] enable_irq : %d\n", __LINE__ );
+	    local_irq_enable();
+
+		if(ret == 0)
+		{
+			printk(KERN_ERR "SET Download Fail - error code [%d]\n", ret);			
+		}
+	}	
 
        hrtimer_start(&ts->timer, ktime_set(2, 0), HRTIMER_MODE_REL);
 }
@@ -1040,8 +1096,8 @@ static ssize_t rawdata_pass_fail_silabs(struct device *dev, struct device_attrib
 	}
 	printk("[TSP] ver tsp=%x, HW=%x, SW=%x\n", buf_firmware_show[1], buf_firmware_show[2], buf_firmware_show[0]);
 
-     if ( buf_firmware_show[2] == YTE_MODULE_VER0F)
-             PHONE_VER = FW_VER05;
+     if ( buf_firmware_show[2] == YTE_MODULE_VER11)
+             PHONE_VER = FW_VER01;
      else if ( buf_firmware_show[2] == SYN_MODULE_VER01)
              PHONE_VER = FW_VER02;
      else if ( buf_firmware_show[2] == SYN_MODULE_VER02)
@@ -1300,10 +1356,10 @@ static ssize_t firmware_show(struct device *dev, struct device_attribute *attr, 
      else
 #endif
 
-     if ( buf_firmware_show[2] == YTE_MODULE_VER0F)
+     if ( buf_firmware_show[2] == YTE_MODULE_VER11)
      {
-       	PHONE_VER = FW_VER05;
-	   	sprintf(buf, "10%x0%x0%x\n", buf_firmware_show[2], buf_firmware_show[0], PHONE_VER);
+       	PHONE_VER = FW_VER01;
+	   	sprintf(buf, "1%x0%x0%x\n", buf_firmware_show[2], buf_firmware_show[0], PHONE_VER);
      }
 	 else if ( buf_firmware_show[2] == SYN_MODULE_VER01)
 	 {

@@ -596,12 +596,12 @@ int bcm21553_arm11_set_rate(struct clk *clk, unsigned long val)
 	u32 apps_pll_freq = bcm21553_apps_pll_get_rate();
 
 	/* apps_pll_freq = 1248 */        
-		arm11_freq[0] = (apps_pll_freq)/8; 	/* 156 MHz */
-        arm11_freq[1] = (apps_pll_freq)/4; 	/* 312 MHz */
-        arm11_freq[2] = (apps_pll_freq*3)/8;	/* 468 MHz */
-		arm11_freq[3] = (apps_pll_freq)/2; 	/* 624 MHz */
-        arm11_freq[4] = (apps_pll_freq*7)/12;	/* 728 MHz */
-		arm11_freq[5] = (apps_pll_freq*2)/3; 	/* 832 MHz */
+	arm11_freq[0] = (apps_pll_freq)/8; 	/* 156 MHz */
+    arm11_freq[1] = (apps_pll_freq)/4; 	/* 312 MHz */
+    arm11_freq[2] = (apps_pll_freq*3)/8;	/* 468 MHz */
+	arm11_freq[3] = (apps_pll_freq)/2; 	/* 624 MHz */
+    arm11_freq[4] = (apps_pll_freq*7)/12;	/* 728 MHz */
+	arm11_freq[5] = (apps_pll_freq*2)/3; 	/* 832 MHz */
 
 	/*we supported only two modes  - 0xC & 0xF*/
 	/*we support four modes  - 0xB, 0xC, 0xD & 0xF*/
@@ -626,7 +626,7 @@ int bcm21553_arm11_set_rate(struct clk *clk, unsigned long val)
 		mode = 0x0E;
 	}
 	else if (val == arm11_freq[5])
-	{	
+	{
 		mode = 0x0F;
 	}
 	else

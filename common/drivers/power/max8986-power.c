@@ -1000,8 +1000,6 @@ if(!usecb)
 	
 		if( bat_state != -1 && bat_per == 0 && max8986_power->batt_health != POWER_SUPPLY_HEALTH_DEAD)
 			bat_per = 1;
-		else if(max8986_power->batt_voltage <= 3450)
-			bat_per = 1;
 
 		get_bq27425_battery_data(BQ27425_REG_AI, &max8986_power->averageCurrent);
 		get_bq27425_battery_data(BQ27425_REG_RM, &bat_current);
@@ -1375,13 +1373,11 @@ static void max8986_muic_event(int event, u32 param,  void *data)
 			}
 			if(max8986_power->dcd_timout)
 			{
-				pr_info("%s: Invalid Charger(Carkit type)\n", __func__);
-// CS557898, Even broken USB inserted, charging should be enabled. 
-//
-				max8986_power->charger_type = PMU_MUIC_CHGTYP_DEDICATED_CHGR;
-//				break;
+				pr_info("%s: Invalid Charger\n", __func__);
+				break;
 			}
-			else max8986_power->charger_type = param;
+			max8986_power->charger_type = param;
+
 #if defined(CONFIG_HAS_WAKELOCK)
 				wake_lock(&max8986_power->usb_charger_wl);	/* wake lock is needed only for usb */
 #endif
@@ -1976,7 +1972,7 @@ static ssize_t spa_Test_Show(struct device *dev, struct device_attribute *attr, 
 			i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", max8986_power->averageCurrent);
 			break;	
 		case BUTTON:
-			i += scnprintf(buf + i, PAGE_SIZE - i, "%s\n", ((max8986_power->button)?"ON":"OFF"));
+			i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", max8986_power->button);
 			break;
 		case BATT_FACTORY_TEMP:
 			i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", max8986_power->tmp);			

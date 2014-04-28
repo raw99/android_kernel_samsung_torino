@@ -413,7 +413,7 @@ void KRIL_SendResponse(KRIL_CmdList_t *listentry)
         else
             entry->result_info.result = listentry->result; // Assign the result
     }
-    KRIL_DEBUG(DBG_TRACE, "entry result:%d CmdID:%ld datalen:%d\n", entry->result_info.result, entry->result_info.CmdID, entry->result_info.datalen);
+    KRIL_DEBUG(DBG_INFO, "entry result:%d CmdID:%ld datalen:%d\n", entry->result_info.result, entry->result_info.CmdID, entry->result_info.datalen);
 
     if (0 == entry->result_info.datalen)
     {
@@ -465,7 +465,7 @@ void KRIL_SendNotify(SimNumber_t SimId, int CmdID, void *rsp_data, UInt32 rsp_le
     entry->result_info.CmdID = CmdID;
     entry->result_info.SimId = SimId;
     entry->result_info.datalen = rsp_len;
-    KRIL_DEBUG(DBG_TRACE, "SimId:%d client:%d CmdID:%lu datalen:%d\n", SimId, entry->result_info.client, entry->result_info.CmdID, entry->result_info.datalen);
+    KRIL_DEBUG(DBG_INFO, "SimId:%d client:%d CmdID:%lu datalen:%d\n", SimId, entry->result_info.client, entry->result_info.CmdID, entry->result_info.datalen);
     if (0 == entry->result_info.datalen)
     {
         entry->result_info.data = NULL;
@@ -555,7 +555,7 @@ void KRIL_CommandThread(struct work_struct *data)
                 {
                     if (g_kril_capi2_handler_array[i].contextSize != 0)
                     {
-                        KRIL_DEBUG(DBG_TRACE, "contextSize %d\n", g_kril_capi2_handler_array[i].contextSize);
+                        KRIL_DEBUG(DBG_INFO, "contextSize %d\n", g_kril_capi2_handler_array[i].contextSize);
                         cmd_list->cmdContext = kmalloc(g_kril_capi2_handler_array[i].contextSize, GFP_KERNEL);
                         if(!cmd_list->cmdContext) {
                             KRIL_DEBUG(DBG_ERROR, "unable to allocate cmd_list->cmdContext buf\n");
@@ -577,12 +577,12 @@ void KRIL_CommandThread(struct work_struct *data)
 //              KRIL_DEBUG(DBG_TRACE2, "arrary cmd:0x%x  command:0x%lx\n", g_kril_capi2_handler_array[i].cmd, entry->cmd);
 //          }
         }
-        //KRIL_DEBUG(DBG_TRACE, "Iterations are over...!\n");
+        //KRIL_DEBUG(DBG_ERROR, "Iterations are over...!\n");
         //KRIL_SendResponse(cmd_list);
         if((TRUE == found) && (i < ARRAY_SIZE(g_kril_capi2_handler_array)))
         {
             mutex_lock(&gKrilCmdList.mutex);
-            KRIL_DEBUG(DBG_TRACE, "match command success 0x%lx, msgid %d\n", entry->cmd, i);
+            KRIL_DEBUG(DBG_INFO, "match command success 0x%lx, msgid %d\n", entry->cmd, i);
             cmd_list->capi2_handler = g_kril_capi2_handler_array[i].capi2_handler;
             g_kril_capi2_handler_array[i].capi2_handler((void *)cmd_list, NULL);
             if(BCM_ErrorCAPI2Cmd == cmd_list->handler_state || BCM_FinishCAPI2Cmd == cmd_list->handler_state)
@@ -611,7 +611,7 @@ void KRIL_CommandThread(struct work_struct *data)
             else
             {
                 cmd_list->tid = GetTID(); // store next TID in command list
-                KRIL_DEBUG(DBG_TRACE, "other handler state:0x%lx tid:%ld\n", cmd_list->handler_state, cmd_list->tid);
+                KRIL_DEBUG(DBG_INFO, "other handler state:0x%lx tid:%ld\n", cmd_list->handler_state, cmd_list->tid);
             }
             mutex_unlock(&gKrilCmdList.mutex);
         }
@@ -636,7 +636,7 @@ void KRIL_CommandThread(struct work_struct *data)
             cmd_list = NULL;
             mutex_unlock(&gKrilCmdList.mutex);
         }
-        KRIL_DEBUG(DBG_TRACE, "list_empty(gKrilCmdQueue.list):%d...!\n", list_empty(&gKrilCmdQueue.list));
+        KRIL_DEBUG(DBG_INFO, "list_empty(gKrilCmdQueue.list):%d...!\n", list_empty(&gKrilCmdQueue.list));
         mutex_lock(&gKrilCmdQueue.mutex);
         list_del(listptr);
         kfree(entry);
@@ -702,7 +702,7 @@ void KRIL_ResponseHandler(struct work_struct *data)
             listentry->capi2_handler((void *)listentry, entry);
             if(BCM_FinishCAPI2Cmd == listentry->handler_state || BCM_ErrorCAPI2Cmd == listentry->handler_state)
             {
-                KRIL_DEBUG(DBG_TRACE, "handler_state:0x%lx client:%d CmdID:%ld\n", listentry->handler_state, listentry->ril_cmd->client, listentry->ril_cmd->CmdID);
+                KRIL_DEBUG(DBG_INFO, "handler_state:0x%lx client:%d CmdID:%ld\n", listentry->handler_state, listentry->ril_cmd->client, listentry->ril_cmd->CmdID);
                 if (BCM_URIL_CLIENT == listentry->ril_cmd->client ||
                     BCM_AT_URIL_CLIENT == listentry->ril_cmd->client
 #ifdef BCM_RIL_FOR_EAP_SIM         // BCM_EAP_SIM            
@@ -767,7 +767,7 @@ void KRIL_ResponseHandler(struct work_struct *data)
                 {
                     listentry->tid = GetTID(); // store next TID in command list
                 }
-                KRIL_DEBUG(DBG_TRACE, "other handler state:0x%lx tid:%ld\n", listentry->handler_state, listentry->tid);
+                KRIL_DEBUG(DBG_INFO, "other handler state:0x%lx tid:%ld\n", listentry->handler_state, listentry->tid);
             }
             found = FALSE;
             mutex_unlock(&gKrilCmdList.mutex);
@@ -806,7 +806,7 @@ void KRIL_NotifyHandler(struct work_struct *data)
     Kril_CAPI2Info_t *entry = NULL;
     UInt32 irql;
 
-    KRIL_DEBUG(DBG_TRACE, "head tid:%ld list:%p next:%p prev:%p\n", gKrilNotifyWq.capi2_head.tid, &gKrilNotifyWq.capi2_head.list, gKrilNotifyWq.capi2_head.list.next, gKrilNotifyWq.capi2_head.list.prev);
+    KRIL_DEBUG(DBG_INFO, "head tid:%ld list:%p next:%p prev:%p\n", gKrilNotifyWq.capi2_head.tid, &gKrilNotifyWq.capi2_head.list, gKrilNotifyWq.capi2_head.list.next, gKrilNotifyWq.capi2_head.list.prev);
 
     spin_lock_irqsave(&gKrilNotifyWq.lock, irql);
     list_for_each_safe(listptr, pos, &gKrilNotifyWq.capi2_head.list)
@@ -816,7 +816,7 @@ void KRIL_NotifyHandler(struct work_struct *data)
 
         ProcessNotification(entry);
 
-        KRIL_DEBUG(DBG_TRACE, "entry tid:%ld msgType:0x%x list:%p next:%p prev:%p list_empty:%d\n", entry->tid, entry->msgType, &entry->list, entry->list.next, entry->list.prev, list_empty(&gKrilNotifyWq.capi2_head.list));
+        KRIL_DEBUG(DBG_INFO, "entry tid:%ld msgType:0x%x list:%p next:%p prev:%p list_empty:%d\n", entry->tid, entry->msgType, &entry->list, entry->list.next, entry->list.prev, list_empty(&gKrilNotifyWq.capi2_head.list));
         RPC_SYSFreeResultDataBuffer(entry->dataBufHandle);
         spin_lock_irqsave(&gKrilNotifyWq.lock, irql);
 
@@ -936,12 +936,12 @@ Boolean IsNeedToWait(SimNumber_t SimId, unsigned long CmdID)
     
     if ( (BRCM_RIL_REQUEST_OEM_HOOK_RAW == CmdID) && (KRIL_GetInMeasureReportHandler()) )
     {
-        KRIL_DEBUG(DBG_TRACE, "MeasureReport MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_ERROR, "MeasureReport MATCH::Cmd queue:0x%02lx\n", CmdID);
         return TRUE;
     }
     else if ( (BRCM_RIL_REQUEST_GET_NEIGHBORING_CELL_IDS == CmdID) && (KRIL_GetInNeighborCellHandler()) )
     {
-        KRIL_DEBUG(DBG_TRACE, "NeighborCellHandler MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_INFO, "NeighborCellHandler MATCH::Cmd queue:0x%02lx\n", CmdID);
         return TRUE;
     }
     else if ((BRCM_RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC == CmdID ||
@@ -952,49 +952,47 @@ Boolean IsNeedToWait(SimNumber_t SimId, unsigned long CmdID)
         // wait for both solicited response MSG_PLMN_SELECT_RSP and potentially unsolicited 
         // notification MSG_PLMN_SELECT_CNF (which needs to have tid of original request mapped
         // to it so it can be routed to appropriate KRIL handler)
-        KRIL_DEBUG(DBG_TRACE, "NetworkSelectHandler MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_INFO, "NetworkSelectHandler MATCH::Cmd queue:0x%02lx\n", CmdID);
         return TRUE;
     }
     else if ((BRCM_RIL_REQUEST_DIAL == CmdID || RIL_REQUEST_DIAL_EMERGENCY_CALL == CmdID) && KRIL_GetInHoldCallHandler(SimId) == TRUE)
     {
-        KRIL_DEBUG(DBG_TRACE, "Dial Handler MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_INFO, "Dial Handler MATCH::Cmd queue:0x%02lx\n", CmdID);
         KRIL_SetIsNeedMakeCall(SimId, TRUE);
         return TRUE;
     }
     else if ((BRCM_RIL_REQUEST_SEND_SMS == CmdID || BRCM_RIL_REQUEST_SEND_SMS_EXPECT_MORE == CmdID) && KRIL_GetInSendSMSHandler(SimId) == TRUE)
     {
-        KRIL_DEBUG(DBG_TRACE, "Send SMS handler MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_INFO, "Send SMS handler MATCH::Cmd queue:0x%02lx\n", CmdID);
         KRIL_IncrementSendSMSNumber(SimId);
         return TRUE;
     }
     else if ((BRCM_RIL_REQUEST_WRITE_SMS_TO_SIM == CmdID || BRCM_RIL_REQUEST_DELETE_SMS_ON_SIM == CmdID) && KRIL_GetInUpdateSMSInSIMHandler(SimId) == TRUE)
     {
-        KRIL_DEBUG(DBG_TRACE, "Write SMS handler MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_INFO, "Write SMS handler MATCH::Cmd queue:0x%02lx\n", CmdID);
         KRIL_IncrementUpdateSMSNumber(SimId);
         return TRUE;
     }
     else if (BRCM_RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE == CmdID && KRIL_GetInSetPrferredNetworkTypeHandler() == TRUE)
     {
-        KRIL_DEBUG(DBG_TRACE, "Set Preferred Network handler MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_INFO, "Set Preferred Network handler MATCH::Cmd queue:0x%02lx\n", CmdID);
         KRIL_SetIsNeedSetPreferNetwrokType(TRUE); 
         return TRUE;
     }
     else if((BRCM_RIL_REQUEST_SETUP_DATA_CALL == CmdID) && KRIL_GetInSetupPDPHandler())
     {
-        KRIL_DEBUG(DBG_TRACE, "SetupPdpHandler MATCH::Cmd queue:0x%02lx\n", CmdID);
+        KRIL_DEBUG(DBG_INFO, "SetupPdpHandler MATCH::Cmd queue:0x%02lx\n", CmdID);
         return TRUE; 
     }
 //    else if (RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE == CmdID && KRIL_GetInSetPrefNetworkTypeHandler() == TRUE)
 //    {
-//        KRIL_DEBUG(DBG_TRACE, "Set Preferred Network handler MATCH::Cmd queue:0x%02lx\n", CmdID);
+//        KRIL_DEBUG(DBG_INFO, "Set Preferred Network handler MATCH::Cmd queue:0x%02lx\n", CmdID);
 //        KRIL_SetIsNeedSetPreferNetworkType(TRUE); 
 //        return TRUE;
 //    }
     else if(BRCM_RIL_REQUEST_SIM_IO == CmdID ||
             BRCM_RIL_REQUEST_OEM_HOOK_RAW == CmdID ||
-            BRCM_RIL_REQUEST_RADIO_POWER == CmdID ||
-	     BRCM_RIL_REQUEST_ANSWER == CmdID)
-
+            BRCM_RIL_REQUEST_RADIO_POWER == CmdID)
     {
         struct list_head *listptr, *listpos;
         KRIL_CmdList_t *listentry = NULL;
@@ -1037,7 +1035,7 @@ Boolean IsNeedToWait(SimNumber_t SimId, unsigned long CmdID)
                BRCM_RIL_REQUEST_SEPARATE_CONNECTION == listentry->ril_cmd->CmdID ||
                BRCM_RIL_REQUEST_CONFERENCE == listentry->ril_cmd->CmdID)
             {
-                KRIL_DEBUG(DBG_TRACE, "command list::CmdID:%ld find CmdID:%ld tid:%ld\n", CmdID, listentry->ril_cmd->CmdID, listentry->tid);
+                KRIL_DEBUG(DBG_INFO, "command list::CmdID:%ld find CmdID:%ld tid:%ld\n", CmdID, listentry->ril_cmd->CmdID, listentry->tid);
                 found = TRUE;
                 break;
             }
@@ -1081,7 +1079,7 @@ Boolean IsNeedToWait(SimNumber_t SimId, unsigned long CmdID)
                 BRCM_RIL_REQUEST_SEND_USSD == listentry->ril_cmd->CmdID ||
                 BRCM_RIL_REQUEST_CANCEL_USSD == listentry->ril_cmd->CmdID )
             {
-                KRIL_DEBUG(DBG_TRACE, "command list::CmdID:%ld find CmdID:%ld tid:%ld\n", CmdID, listentry->ril_cmd->CmdID, listentry->tid);
+                KRIL_DEBUG(DBG_INFO, "command list::CmdID:%ld find CmdID:%ld tid:%ld\n", CmdID, listentry->ril_cmd->CmdID, listentry->tid);
                 found = TRUE;
                 break;
             }
@@ -1906,7 +1904,7 @@ UInt32 KRIL_GetServingCellTID(void)
 //******************************************************************************
 void KRIL_SetInNeighborCellHandler( Boolean inHandler )
 {
-    KRIL_DEBUG(DBG_TRACE,"inHandler:%s\n", (inHandler?"TRUE":"FALSE") );
+    KRIL_DEBUG(DBG_INFO,"inHandler:%s\n", (inHandler?"TRUE":"FALSE") );
     sInNeighborCellHandler = inHandler;
 }
 
@@ -2409,14 +2407,14 @@ void RawDataPrintfun(UInt8* rawdata, UInt16 datalen, char* showstr)
     UInt8  *pdata = rawdata;
     UInt8  array[32];
     
-    KRIL_DEBUG(DBG_TRACE,"%s: datalen:%d\n", showstr, datalen);
+    KRIL_DEBUG(DBG_INFO,"%s: datalen:%d\n", showstr, datalen);
     memset(array, 0, 32);
     
     while (datalen > 0)
     {
         if (datalen >= 32)
         {
-            KRIL_DEBUG(DBG_TRACE,"%s: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",showstr,pdata[0],pdata[1],pdata[2],pdata[3],
+            KRIL_DEBUG(DBG_INFO,"%s: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",showstr,pdata[0],pdata[1],pdata[2],pdata[3],
             pdata[4],pdata[5],pdata[6],pdata[7],pdata[8],pdata[9],pdata[10],pdata[11],pdata[12],pdata[13],pdata[14],pdata[15],pdata[16],pdata[17],pdata[18],pdata[19],pdata[20],pdata[21],pdata[22],pdata[23],pdata[24],pdata[25],pdata[26],
             pdata[27],pdata[28],pdata[29],pdata[30],pdata[31]);
             
@@ -2426,7 +2424,7 @@ void RawDataPrintfun(UInt8* rawdata, UInt16 datalen, char* showstr)
         else
         {
             memcpy(array, pdata, datalen);
-            KRIL_DEBUG(DBG_TRACE,"%s: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",showstr,array[0],array[1],array[2],array[3],
+            KRIL_DEBUG(DBG_INFO,"%s: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",showstr,array[0],array[1],array[2],array[3],
             array[4],array[5],array[6],array[7],array[8],array[9],array[10],array[11],array[12],array[13],array[14],array[15],array[16],array[17],array[18],array[19],array[20],array[21],array[22],array[23],array[24],array[25],array[26],
             array[27],array[28],array[29],array[30],array[31]);
             
@@ -2460,7 +2458,7 @@ void KRIL_OemHookRawHandler(void *ril_cmd, Kril_CAPI2Info_t *capi2_rsp)
         UInt8 msgid;
         
         msgid = (UInt8)rawdata[4];
-        KRIL_DEBUG(DBG_TRACE,"msgid:%d\n", msgid);
+        KRIL_DEBUG(DBG_INFO,"msgid:%d\n", msgid);
         
         switch (msgid)
         {

@@ -1294,7 +1294,7 @@ static HAL_CAM_Result_en_t cam_sensor_cntrl_seq(CamSensorIntfCntrl_st_t *seq,
 
 		case PAUSE:
 			if (seq[i].value != 0) {
-#if 0 //CYK_TEST
+#if 1 //CYK_TEST
 				//HalcamTraceErr("[CYK] +++ TEST PAUSE - %d ms", (int)seq[i].value);
 				msleep_SS(seq[i].value);
 				//HalcamTraceErr("[CYK] --- TEST PAUSE - %d ms", (int)seq[i].value);

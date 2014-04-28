@@ -8,7 +8,7 @@
 #include <asm/io.h>
 
 #include "bootloader.h"
-#include "SILABS_S6102_TYE015_BL006_APP005.h"
+#include "SILABS_S6102_TYE017_BL006_APP001.h"
 #include "SILABS_S6102_SYN001_BL006_APP002.h"
 #include "SILABS_S6102_SYN002_BL006_APP005.h"
 
@@ -189,8 +189,8 @@ int WriteBytes (unsigned int addr, unsigned int num)
    SMB_DATA_OUT[6] = num&0xFF;
    SMB_DATA_OUT[7] = ((num>>8)&0xFF);
    SMB_DATA_OUT[8] = 0; // dummy
-   if(TSP_MODULE_ID==0x0F)
-   for(i=0;i<num;i++) SMB_DATA_OUT[i+9] = TYE_MOD15_APP05_Binary[addr+i]; 
+   if(TSP_MODULE_ID==0x11)
+   for(i=0;i<num;i++) SMB_DATA_OUT[i+9] = TYE_MOD17_APP01_Binary[addr+i]; 
    else if(TSP_MODULE_ID==0x01)
    for(i=0;i<num;i++) SMB_DATA_OUT[i+9] = SYN_MOD01_APP02_Binary[addr+i];
    else if(TSP_MODULE_ID==0x02)
@@ -275,8 +275,8 @@ int GetPageCRC (unsigned int addr)
    
    for (i = 0; i < 0x200 ; i++) // Page size = 0x200
    {
-		if(TSP_MODULE_ID==0x0F)
-			write_data = TYE_MOD15_APP05_Binary[addr+i]; 
+		if(TSP_MODULE_ID==0x11)
+			write_data = TYE_MOD17_APP01_Binary[addr+i]; 
 		else if(TSP_MODULE_ID==0x01)
 			write_data = SYN_MOD01_APP02_Binary[addr+i];
 		else if(TSP_MODULE_ID==0x02)

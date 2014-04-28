@@ -167,7 +167,7 @@ void accsns_activate(int flgatm, int flg, int dtime)
         if((ret = bma222_set_range(0)) != 0)	// range +/- 2G
             printk(KERN_ERR "[%s] Set range is failed\n",__FUNCTION__);
 
-	if((ret = bma222_set_bandwidth(5)) != 0)	//bandwidth 250Hz(5) 125Hz(4) 62.50Hz(3) 31.25Hz(2) 15.63Hz(1) for filtering noise
+	if((ret = bma222_set_bandwidth(1)) != 0)	//bandwidth 250Hz(5) 125Hz(4) 62.50Hz(3) 31.25Hz(2) 15.63Hz(1) for filtering noise
             printk(KERN_ERR "[%s] Set Bandwidth is failed\n",__FUNCTION__);        
     }
 
@@ -975,7 +975,7 @@ static int bma222_probe(struct i2c_client *client,
 	data->bma222.delay_msec = bma222_i2c_delay;	
 
 	bma222_init(&data->bma222);
-	bma222_set_bandwidth(5); ////bandwidth 250Hz(5) 125Hz(4) 62.50Hz(3) 31.25Hz(2) 15.63Hz(1) for filtering noise
+	bma222_set_bandwidth(1); //bandwidth 125Hz(4) => 62.50Hz(3) =>31.25Hz(2) => 15.63Hz(1) for filtering noise
 	bma222_set_range(0);	//range +/- 2G
 
 #ifdef BMA222_PROC_FS
@@ -1045,7 +1045,7 @@ static int bma222_resume(struct i2c_client *client)
 	if((ret = bma222_set_mode(bma222_MODE_NORMAL)) != 0)	// Normal mode
 		printk(KERN_ERR "[%s] Change to Normal Mode is failed\n",__FUNCTION__);
 
-	if((ret = bma222_set_bandwidth(5)) != 0)	////bandwidth 250Hz(5) 125Hz(4) 62.50Hz(3) 31.25Hz(2) 15.63Hz(1) for filtering noise
+	if((ret = bma222_set_bandwidth(1)) != 0)	//bandwidth 125Hz(4) => 62.50Hz(3) =>31.25Hz(2) => 15.63Hz(1)  for filtering noise
 		printk(KERN_ERR "[%s] Set Bandwidth is failed\n",__FUNCTION__);
 
 	if((ret = bma222_set_range(0)) != 0)	// range +/- 2G
