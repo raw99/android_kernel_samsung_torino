@@ -1949,6 +1949,15 @@ int __init v3d_opt_init(void)
 	KLOG_D("v3d bin oom2 phys[0x%08x], size[0x%08x] cpuaddr[0x%08x]", 
 		v3d_bin_oom_block2, v3d_bin_oom_size2, (int)v3d_bin_oom_cpuaddr2);
 
+	v3d_id = 1;
+	v3d_in_use = 0;
+	init_MUTEX(&v3d_sem);
+	INIT_ACQUIRE;
+	init_waitqueue_head(&v3d_isr_done_q);
+	init_waitqueue_head(&v3d_start_q);
+	v3d_job_head = NULL;
+	v3d_job_curr = NULL;
+
 	v3d_thread_task = kthread_run(&v3d_thread,v3d_dev,"v3d_thread");
 	if ((int)v3d_thread_task == -ENOMEM) {
 		KLOG_E("Kernel Thread did not start [0x%08x]", (int)v3d_thread_task);
@@ -1962,15 +1971,6 @@ int __init v3d_opt_init(void)
 		KLOG_E("REgistering isr failed");
 		goto err;
 	}
-
-	v3d_id = 1;
-	v3d_in_use = 0;
-	init_MUTEX(&v3d_sem);
-	INIT_ACQUIRE;
-	init_waitqueue_head(&v3d_isr_done_q);
-	init_waitqueue_head(&v3d_start_q);
-	v3d_job_head = NULL;
-	v3d_job_curr = NULL;
 	
 #ifdef ENABLE_PROCFS
 	v3d_proc_file = create_proc_entry(V3D_DEV_NAME, 0644, NULL);
