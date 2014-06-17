@@ -846,7 +846,7 @@ static struct platform_device bcm215xx_keypad_device = {
 struct platform_device bcm_test_vibrator_devices = {
 	.name = "vibrator", 
 	.id = 0,
-	.voltage = 3000000,
+	.voltage = 3300000,
 };
 #ifdef CONFIG_BACKLIGHT_AAT1401
 struct platform_device bcm_aat1401_backlight_devices = {
@@ -953,7 +953,7 @@ static struct bma150_accl_platform_data bma_pdata = {
 	.orientation = BMA_ROT_90,
 	.invert = true,
 	.init = bma_gpio_init,
-	.i2c_pdata = {.i2c_spd = I2C_SPD_400K,},
+	.i2c_pdata = {.i2c_spd = I2C_SPD_100K,},
 };
 #endif
 
@@ -1076,8 +1076,8 @@ static struct regulator_init_data dldo3_init_data = {
 
 static struct regulator_init_data dldo4_init_data = {
 	.constraints = {
-		.min_uV = 1200000,
-		.max_uV = 1200000,
+		.min_uV = 1800000,
+		.max_uV = 1800000,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE |
 			REGULATOR_CHANGE_STATUS,
 		.always_on = 0,
@@ -1394,8 +1394,8 @@ static struct max8986_audio_pdata audio_pdata = {
 };
 
 static struct max8986_power_pdata power_pdata = {
-	.usb_charging_cc = MAX8986_CHARGING_CURR_500MA,
-	.wac_charging_cc = MAX8986_CHARGING_CURR_500MA,
+	.usb_charging_cc = MAX8986_CHARGING_CURR_450MA,
+	.wac_charging_cc = MAX8986_CHARGING_CURR_450MA,
 	.eoc_current = MAX8986_EOC_100MA,
 
 	.temp_adc_channel =  0,
