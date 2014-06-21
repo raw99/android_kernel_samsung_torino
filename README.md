@@ -14,6 +14,6 @@ team dzb making zombie kernel <to reveal the darker side>
    *we are crazy zombie brothers      
           
                           Team DZB members                        
-       *Mr.India <Raw99>         
+       *Mr.India         
        *Xeon Zolt               
        *Wawan                 
