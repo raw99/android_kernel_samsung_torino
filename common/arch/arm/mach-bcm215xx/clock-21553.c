@@ -582,7 +582,7 @@ unsigned long bcm21553_arm11_get_rate(struct clk *clk)
 
 	/* We assume that APPS PLL is active
 	& mode value less than 7 is not supported*/
-	if(mode <= 0x0A)
+	if(mode <= 0x08)
 		return clk_armahb_reg_to_arm11_freq_mapping[mode];
 
 	apps_pll_freq = bcm21553_apps_pll_get_rate();
