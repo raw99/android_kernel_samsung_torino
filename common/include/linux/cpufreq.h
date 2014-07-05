@@ -68,7 +68,7 @@ struct cpufreq_governor;
 /* /sys/devices/system/cpu/cpufreq: entry point for global variables */
 extern struct kobject *cpufreq_global_kobject;
 
-#define CPUFREQ_ETERNAL			(-1)
+#define CPUFREQ_ETERNAL			(9000000)
 struct cpufreq_cpuinfo {
 	unsigned int		max_freq;
 	unsigned int		min_freq;

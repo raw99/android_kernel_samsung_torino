@@ -280,11 +280,10 @@ static unsigned int bcm_cpufreq_get_speed(unsigned int cpu)
 static int bcm_cpufreq_verify_speed(struct cpufreq_policy *policy)
 {
 	struct bcm_cpufreq *b = &bcm_cpufreq[policy->cpu];
-	int ret = -EINVAL;
+	int ret;
 
-	if (b->bcm_freqs_table)
-		ret = cpufreq_frequency_table_verify(policy,
-			b->bcm_freqs_table);
+	ret = cpufreq_frequency_table_verify(policy,
+		b->bcm_freqs_table);
 
 	if (IS_FLOW_DBG_ENABLED) {
 		pr_debug("%s: after cpufreq verify: min:%d->max:%d kHz\n",
@@ -296,8 +295,7 @@ static int bcm_cpufreq_verify_speed(struct cpufreq_policy *policy)
 
 static int wait_for_pll_on(void)
 {
-	int ret = -EIO;
-	int cnt = 10;
+	int ret = 1;
 
 	/* Poll for PLL_ON state (CLK_DEBUG_MON2[7:4]==4b0101) */
 	do {
@@ -306,10 +304,9 @@ static int wait_for_pll_on(void)
 		val >>= APPL_MON_APLL_SWITCH_STATE_SHIFT;
 		if (val == APLL_MON_PLL_ON) {
 			ret = 0;
-			break;
 		}
 		udelay(1);
-	} while (cnt--);
+	} while (ret != 0);
 
 	return ret;
 }
@@ -323,7 +320,12 @@ static int bcm_cpufreq_set_speed(struct cpufreq_policy *policy,
 	struct bcm_cpu_info *info = &b->plat->info[policy->cpu];
 	unsigned int freq_turbo, index_turbo;
 	int index;
-	int ret;
+	int ret = 0;
+	int cpu;
+	int volt_new;
+	int volt_old;
+	int maxfreq;
+	int minfreq;
 
 	/* Lookup the next frequency */
 	if (cpufreq_frequency_table_target(policy, b->bcm_freqs_table,
@@ -335,6 +337,12 @@ static int bcm_cpufreq_set_speed(struct cpufreq_policy *policy,
 	freqs.old = bcm_cpufreq_get_speed(0);
 	freqs.new = b->bcm_freqs_table[index].frequency;
 
+	maxfreq = policy->max;
+	minfreq = policy->min;
+	if (freqs.new > maxfreq)
+		freqs.new = maxfreq;
+	else if (freqs.new < minfreq)
+		freqs.new = minfreq;
 	if (freqs.old == freqs.new)
 		return 0;
 
@@ -344,26 +352,6 @@ static int bcm_cpufreq_set_speed(struct cpufreq_policy *policy,
 	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
 	local_irq_disable();
 
-	/* If we are switching to a higher frequency, we may have to increase
-	 * the core voltage first before changing the frequency.
-	 */
-	if (freqs.new > freqs.old) {
-		/* bcm_get_cpuvoltage expects frequency in MHz, cpufreq core
-		 * gives the frequency in kHz. Hence the kHz to MHz conversion
-		 * below.
-		 */
-		int cpu = policy->cpu;
-		int volt_new = bcm_get_cpuvoltage(cpu, freqs.new / 1000);
-		int volt_old = bcm_get_cpuvoltage(cpu, freqs.old / 1000);
-
-		if (volt_new != volt_old) {
-			pr_info("%s: cpu volt change: %d --> %d\n", __func__,
-				volt_old, volt_new);
-			regulator_set_voltage(b->cpu_regulator, volt_new,
-				volt_new);
-		}
-	}
-
 	/* Get the turbo mode frequency. Switching to and from turbo mode
 	 * needs special handling.
 	 */
@@ -371,37 +359,33 @@ static int bcm_cpufreq_set_speed(struct cpufreq_policy *policy,
 	freq_turbo = info->freq_tbl[index_turbo].cpu_freq * 1000;
 
 	/* Set APPS PLL enable bit when entering to turbo mode */
-	if (freqs.new == freq_turbo)
+	cpu = policy->cpu;
+	volt_new = bcm_get_cpuvoltage(cpu, freqs.new / 1000);
+	volt_old = bcm_get_cpuvoltage(cpu, freqs.old / 1000);
+	if (volt_new > volt_old) {
+		regulator_set_voltage(b->cpu_regulator, 1340000,
+							  1340000);
+	}
+	if (freqs.new == freq_turbo) {
 		clk_enable(b->appspll_en_clk);
-
-	/* freq.new will be in kHz. convert it to Hz for clk_set_rate */
-	ret = wait_for_pll_on();
-	if (!ret)
-		ret = clk_set_rate(b->cpu_clk, freqs.new * 1000);
-
-	/* Clear APPS PLL enable bit when entering to normal mode */
-	if (freqs.new != freq_turbo)
+		ret = wait_for_pll_on();
+	}
+	else if (freqs.new != freq_turbo) {
 		clk_disable(b->appspll_en_clk);
 
-	/* If we are switching to a lower frequency, we can potentially
-	 * decrease the core voltage after changing the frequency.
-	 */
-	if (!ret && freqs.new < freqs.old) {
-		/* bcm_get_cpuvoltage expects frequency in MHz, cpufreq core
-		 * gives the frequency in kHz. Hence the kHz to MHz conversion
-		 * below.
-		 */
-		int cpu = policy->cpu;
-		int volt_new = bcm_get_cpuvoltage(cpu, freqs.new / 1000);
-		int volt_old = bcm_get_cpuvoltage(cpu, freqs.old / 1000);
-
-		if (volt_new != volt_old) {
-			pr_info("%s: cpu volt change: %d --> %d\n", __func__,
-				volt_old, volt_new);
-			regulator_set_voltage(b->cpu_regulator, volt_new,
-				volt_new);
-		}
 	}
+	if ((ret = 0) || (!ret)) {
+		ret = clk_set_rate(b->cpu_clk, freqs.new * 1000);
+	}
+	if (volt_new != volt_old) {
+		if (volt_new > volt_old) {
+			mdelay(1);
+		}
+		pr_info("%s: cpu volt change: %d --> %d\n", __func__,
+			volt_old, volt_new);
+		regulator_set_voltage(b->cpu_regulator, volt_new,
+			volt_new);
+		}
 
 	local_irq_enable();
 	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
@@ -451,7 +435,7 @@ static int bcm_cpufreq_init(struct cpufreq_policy *policy)
 	/* Set default policy and cpuinfo */
 	policy->cur = bcm_cpufreq_get_speed(0);
 	/* FIXME: Tune this value */
-	policy->cpuinfo.transition_latency = CPUFREQ_ETERNAL;
+	policy->cpuinfo.transition_latency = 9000000;
 
 	ret = bcm_create_cpufreqs_table(policy, &(b->bcm_freqs_table));
 	if (ret) {
