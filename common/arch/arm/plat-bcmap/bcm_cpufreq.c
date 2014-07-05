@@ -363,8 +363,8 @@ static int bcm_cpufreq_set_speed(struct cpufreq_policy *policy,
 	volt_new = bcm_get_cpuvoltage(cpu, freqs.new / 1000);
 	volt_old = bcm_get_cpuvoltage(cpu, freqs.old / 1000);
 	if (volt_new > volt_old) {
-		regulator_set_voltage(b->cpu_regulator, 1340000,
-							  1340000);
+		regulator_set_voltage(b->cpu_regulator, 1400000,
+							  1400000);
 	}
 	if (freqs.new == freq_turbo) {
 		clk_enable(b->appspll_en_clk);
