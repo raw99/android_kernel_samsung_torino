@@ -1,0 +1,2 @@
+lzma -dc ../boot.img-ramdisk.cpio.gz | cpio -i
+./mkbootfs ramdisk | lzma -e -4 > ramdisk.gz
