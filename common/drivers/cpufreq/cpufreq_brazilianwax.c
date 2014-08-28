@@ -86,7 +86,7 @@ static unsigned long down_rate_us;
 * When ramping up frequency with no idle cycles jump to at least this frequency.
 * Zero disables. Set a very high value to jump to policy max freqeuncy.
 */
-#define DEFAULT_UP_MIN_FREQ 624000
+#define DEFAULT_UP_MIN_FREQ 0
 static unsigned int up_min_freq;
 
 /*
@@ -95,7 +95,7 @@ static unsigned int up_min_freq;
 * to minimize wakeup issues.
 * Set sleep_max_freq=0 to disable this behavior.
 */
-#define DEFAULT_SLEEP_MAX_FREQ 104000
+#define DEFAULT_SLEEP_MAX_FREQ 100000
 static unsigned int sleep_max_freq;
 
 /*
@@ -113,7 +113,7 @@ static unsigned int threshold_freq;
 * go below this frequency.
 * Set awake_min_freq=0 to disable this behavior.
 */
-#define DEFAULT_AWAKE_MIN_FREQ 156000
+#define DEFAULT_AWAKE_MIN_FREQ 0
 static unsigned int awake_min_freq;
 
 static unsigned int suspendfreq = 100000;
@@ -135,7 +135,7 @@ static unsigned int ramp_up_step;
 * Miminum Freqeuncy delta when ramping down.
 * zero disables and will calculate ramp down according to load heuristic.
 */
-#define DEFAULT_RAMP_DOWN_STEP 100000
+#define DEFAULT_RAMP_DOWN_STEP 0
 static unsigned int ramp_down_step;
 
 /*
@@ -144,7 +144,7 @@ static unsigned int ramp_down_step;
 #define DEFAULT_MAX_CPU_LOAD 65
 static unsigned long max_cpu_load;
 
-#define DEFAULT_X_CPU_LOAD 80
+#define DEFAULT_X_CPU_LOAD 70
 static unsigned long x_cpu_load;
 
 /*
